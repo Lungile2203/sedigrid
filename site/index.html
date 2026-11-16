@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SediGrid: dust monitoring for solar panels in the Free State</title>
+  <meta name="description" content="SediGrid measures dust on solar panels with a clean reference panel, says when a clean pays for itself, and sends a trained local crew to do it." />
+  <link rel="icon" href="img/logo-mark.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600&family=Montserrat:wght@700&display=swap" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a href="#top" class="brand" aria-label="SediGrid home">
+      <img src="img/logo-mark.svg" alt="" width="47" height="32" />
+      <span class="wordmark" aria-hidden="true">SediGr<span class="led">ı</span>d</span>
+    </a>
+    <nav class="nav" aria-label="Main">
+      <a href="#how">How it works</a>
+      <a href="#live-demo">Live demo</a>
+      <a href="#evidence">Evidence</a>
+      <a href="#pilot">Pilot</a>
+      <a href="app/">Dashboard</a>
+      <a href="#contact-us" class="btn compact">Contact us</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+  <!-- INTRO + DEMO -->
+  <section class="intro">
+    <div class="wrap">
+      <div class="text">
+        <h1>Dust monitoring for solar panels in the Free State</h1>
+        <p class="lede">SediGrid compares each array with a clean reference panel, tells you whether a drop in output is dust, cloud or a fault, and books a trained local crew only when a clean will pay for itself.</p>
+        <p class="lede">We are a student team at the Central University of Technology. The sensor and dashboard are working prototypes, and the live demo below runs the whole plan from alert to verified clean. The pilot that measures real Free State sites starts in June 2027.</p>
+        <div class="row">
+          <a href="#live-demo" class="btn">Try the live demo</a>
+          <a href="app/" class="btn ghost">Open the dashboard</a>
+          <a href="#pilot" class="btn ghost">Read about the pilot</a>
+        </div>
+      </div>
+
+      <div class="demo" id="demo">
+        <div class="demo-tabs" role="tablist" aria-label="Demo">
+          <button class="chip" role="tab" id="tab-sensor" aria-selected="true" aria-controls="panel-sensor">The sensor</button>
+          <button class="chip" role="tab" id="tab-cost" aria-selected="false" aria-controls="panel-cost" tabindex="-1">Your site's loss</button>
+          <span class="small muted demo-note">Simulated readings</span>
+        </div>
+
+        <!-- Sensor simulator -->
+        <div class="demo-panel" id="panel-sensor" role="tabpanel" aria-labelledby="tab-sensor">
+          <div class="stack">
+            <h3>Choose what happens at the site</h3>
+            <p class="small muted">A cloud dims both panels by the same amount, so their ratio holds. Dust only lands on the array, so the ratio falls. The rain sensor tells the dashboard whether rain helped.</p>
+            <div class="row" role="group" aria-label="Condition" id="scenarios"></div>
+          </div>
+          <div class="stack" aria-live="polite" id="reading"></div>
+        </div>
+
+        <!-- Loss calculator -->
+        <div class="demo-panel" id="panel-cost" role="tabpanel" aria-labelledby="tab-cost" hidden>
+          <form class="stack" id="calc" novalidate>
+            <h3>Your system</h3>
+            <div class="row" role="group" aria-label="Start from an example" id="presets"></div>
+            <div class="field-row">
+              <div class="field"><label for="kw">System size (kWp)</label><input type="number" id="kw" min="1" step="any" inputmode="decimal" /></div>
+              <div class="field"><label for="tariff">Electricity value (R/kWh)</label><input type="number" id="tariff" min="0.1" step="0.1" inputmode="decimal" /></div>
+            </div>
+            <div class="field">
+              <label for="clean">Cost of one clean (R)</label>
+              <input type="number" id="clean" min="0" step="any" inputmode="decimal" />
+            </div>
+            <div class="field">
+              <label for="soil">Soiling loss: <span class="mono" id="soil-out">5%</span></label>
+              <input type="range" id="soil" min="1" max="20" step="1" value="5" />
+              <span class="hint">Studies range from 1–2% where rain is regular to over 20% near heavy dust sources. Nobody has measured the Free State yet, which is what the pilot is for.</span>
+            </div>
+          </form>
+          <div class="result" aria-live="polite">
+            <span class="small muted">Dust is costing you about</span>
+            <span class="big" id="r-day">R0</span>
+            <span class="small muted">a day, at 6.4 kWh per kWp per day (the Free State yield of Harmony's Sungazer 1 plant).</span>
+            <dl>
+              <div><dt>Energy lost a day</dt><dd id="r-kwh">0 kWh</dd></div>
+              <div><dt>Lost over a 120-day dry season</dt><dd id="r-season">R0</dd></div>
+              <div><dt>One clean pays for itself in</dt><dd id="r-payback">0 days</dd></div>
+            </dl>
+            <div class="verdict" id="r-verdict"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROBLEM -->
+  <section id="problem" class="sec">
+    <div class="wrap"><div class="text">
+      <h2>The problem</h2>
+      <p>Dust from farms, mine dumps and gravel roads settles on panels through the dry season. Bloemfontein gets 9 to 14 mm of rain a month from June to August, and a Stellenbosch study found panels need about 6 mm every four to six weeks to stay clean. Light rain and dew can make it worse by gluing the dust to the glass.</p>
+      <p>The inverter app shows that output dropped, not why. Without a measurement, an owner can't tell dust from cloud, shade or a wiring fault, so a cleaning decision is a guess. Some owners clean on a calendar and pay for cleans they didn't need. Some use hard water or pressure washers that can scratch the glass and void the warranty. Some wait and lose output for months.</p>
+      <p>Checking and cleaning panels is entry-level work that can be taught. Free State unemployment is 37.3% (Stats SA, Q2 2026), and nothing yet links owners who need the work done to young people who could be trained for it.</p>
+    </div></div>
+  </section>
+
+  <!-- SITES -->
+  <section class="sec">
+    <div class="wrap">
+      <div class="text">
+        <h2>Where it applies</h2>
+        <p>Each site gets one sensor node beside the array: a clean reference panel, an ESP32 board and a rain sensor. The cleaning method depends on the dust.</p>
+      </div>
+      <div class="cols-3">
+        <figure class="site-fig"><img src="img/mine.png" alt="Illustration of a mine-site solar plant with dust from a tailings dump" loading="lazy" width="1600" height="920" /><figcaption><h3>Mine plants</h3><span class="small muted">Silica dust from gold tailings is hard and scratches glass. It gets a soft wet clean, never dry scrubbing.</span></figcaption></figure>
+        <figure class="site-fig"><img src="img/farm.png" alt="Illustration of a farm with a tractor raising dust near a solar array" loading="lazy" width="1600" height="920" /><figcaption><h3>Farms</h3><span class="small muted">Harvest and tilling lift topsoil onto pump and cold-room arrays. Loose soil brushes off dry, which saves water.</span></figcaption></figure>
+        <figure class="site-fig"><img src="img/homes.png" alt="Illustration of a house with dusty rooftop panels, a clean reference panel and a sensor node" loading="lazy" width="1600" height="920" /><figcaption><h3>Homes and businesses</h3><span class="small muted">One node covers a street, so roofs are cleaned in one trip and the call-out cost is shared.</span></figcaption></figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section id="how" class="sec">
+    <div class="wrap">
+      <div class="text">
+        <h2>How it works</h2>
+        <p>A job only counts as done when the sensor reading recovers.</p>
+        <ol class="steps">
+          <li><strong>Measure.</strong> The sensor node compares the array with the clean reference panel every few seconds.</li>
+          <li><strong>Decide.</strong> The dashboard rules out cloud, faults and rain, shows the loss in rand, and says clean now or wait.</li>
+          <li><strong>Prescribe.</strong> It picks the cleaning method for the dust and panel type, within the panel maker's warranty rules.</li>
+          <li><strong>Clean.</strong> A trained local crew gets the job, the method and a safety checklist.</li>
+          <li><strong>Verify.</strong> The ratio has to recover. The owner gets before and after readings; the crew member gets a verified job on their record.</li>
+        </ol>
+      </div>
+
+      <div class="split">
+        <div class="side">
+          <h3>The sensor node</h3>
+          <p class="small">Two small panels side by side, each with its own 50 Ω load. Panel A is kept clean; Panel B sits on the array and collects dust. The node reads both every 2 seconds, and the buzzer sounds when soiling stays at 8% or more for three readings.</p>
+          <dl class="spec">
+            <div><dt>Board</dt><dd>ESP32 DevKit, Wi-Fi to dashboard</dd></div>
+            <div><dt>Panel A (reference)</dt><dd>GPIO34, 12k/10k divider</dd></div>
+            <div><dt>Panel B (test)</dt><dd>GPIO35, 12k/10k divider</dd></div>
+            <div><dt>Rain sensor</dt><dd>Analog out on GPIO36</dd></div>
+            <div><dt>Temperature</dt><dd>2 × DS18B20 on GPIO33</dd></div>
+            <div><dt>Buzzer</dt><dd>Via NPN transistor, GPIO32</dd></div>
+          </dl>
+        </div>
+        <div class="main">
+          <div class="schematic"><img src="img/schematic.png" alt="Wiring schematic of the two-panel ESP32 soiling sensor with relay buzzer, rain sensor and temperature probe" loading="lazy" width="2400" height="1244" /></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- LIVE DEMO: the real dashboard, running its in-browser sensor simulator (?sim), so it never touches live data -->
+  <section id="live-demo" class="sec">
+    <div class="wrap">
+      <div class="text">
+        <h2>Live demo</h2>
+        <p>This is the working dashboard, running on simulated sensors for four example sites. Open Tshepong mine solar plant and pick <strong>Dust builds up</strong>: the sensor raises an alert, a red bar appears, and the dashboard starts counting the loss second by second. Dispatch a crew, mark the panels cleaned and verify with the sensor; the event log records each step and the total lost. <strong>Play walkthrough</strong> steps through every case on its own.</p>
+        <div class="row">
+          <a href="app/?sim" class="btn ghost compact" target="_blank" rel="noopener">Open full screen</a>
+          <span class="small muted">Nothing you do here changes real data.</span>
+        </div>
+      </div>
+      <div class="live-frame">
+        <iframe src="app/?sim" title="SediGrid dashboard, running on simulated sensors" loading="lazy"></iframe>
+      </div>
+    </div>
+  </section>
+
+  <!-- INSTALLERS -->
+  <section class="sec">
+    <div class="wrap">
+      <div class="text">
+        <h2>Working with installers and O&amp;M companies</h2>
+        <p>Large plants already have maintenance contracts, and an installer we spoke to in Parys includes cleaning in hers. We would give companies like that local dust data, a clean-or-wait call per site and trained crews when they need them, and serve the farms, mine plants, business roofs and homes that fixed schedules don't reach.</p>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Today</th><th>With SediGrid</th></tr></thead>
+          <tbody>
+            <tr><td>The inverter app shows output dropped</td><td>You see whether it was dust, cloud, rain or a fault</td></tr>
+            <tr><td>Cleaning on a calendar</td><td>Cleaning when the loss is bigger than the cost</td></tr>
+            <tr><td>One method for every site</td><td>A method for each dust type, within warranty rules</td></tr>
+            <tr><td>"Job done" with no proof</td><td>Before and after readings</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- EVIDENCE -->
+  <section id="evidence" class="sec">
+    <div class="wrap">
+      <div class="text">
+        <h2>Evidence</h2>
+        <p>What published research says about dust and solar in the Free State. Where a figure is our own calculation, the source column says so.</p>
+      </div>
+      <div class="table-wrap">
+        <table class="evidence">
+          <thead><tr><th>Finding</th><th>Source</th></tr></thead>
+          <tbody>
+            <tr><td>The Free State is South Africa's largest dust emitter, mostly from cropland between June and January.</td><td>Vos, University of Basel, 2021</td></tr>
+            <tr><td>178 dust plumes came from the western Free State between 2006 and 2016.</td><td>UCT Aeolian Research, 2020</td></tr>
+            <tr><td>Panels stayed within 1% of clean with about 6 mm of rain every 4 to 6 weeks; losses peaked after 75 dry days.</td><td>Du Plessis, Stellenbosch, 2017</td></tr>
+            <tr><td>Light rain and dew can make soiling worse.</td><td>Hanrieder et al., DLR, 2021; Ilse et al., IEEE JPV, 2019</td></tr>
+            <tr><td>Gold tailings are 65 to 93% silica; tailings dust peaks July to October.</td><td>Mpanza et al., 2020</td></tr>
+            <tr><td>At Harmony's 30 MW Sungazer 1 plant (70 GWh a year), each 1% of soiling is about 0.7 GWh, or R1 to R1.75 million a year at R1.50 to R2.50 per kWh.</td><td>Engineering News, 2026; our calculation</td></tr>
+            <tr><td>A 4 kW home system at 3 to 5% soiling loses R740 to R1,230 a year.</td><td>Energybee, 2026</td></tr>
+            <tr><td>Solar O&amp;M could employ 11,000 to 13,000 people nationally by 2030.</td><td>SAPVIA, via Engineering News</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="text">
+        <h3>What we don't know yet</h3>
+        <ul class="plain">
+          <li>Nobody has measured soiling losses in the Free State. We don't quote a figure; the pilot will measure one.</li>
+          <li>Losses vary widely. A Northern Cape plant lost 1 to 2% with regular rain; studies near heavy dust sources found over 20%.</li>
+          <li>The mine and smelter studies are indirect: the tailings studies measured dust, not panels.</li>
+          <li>We found no survey of how South African owners actually clean their panels.</li>
+          <li>Our prototype uses two mini panels. Real sites will also need inverter data.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- PILOT -->
+  <section id="pilot" class="sec">
+    <div class="wrap">
+      <div class="text">
+        <h2>The pilot</h2>
+        <p>We want to measure soiling weekly through one dry season at three sites, train the first local crew, and publish the results. We are looking for funders, site owners, installers and training partners.</p>
+      </div>
+      <div class="cols-2">
+        <div class="stack">
+          <h3>What the funding pays for</h3>
+          <ul class="plain">
+            <li>Three sensor nodes: reference panel, ESP32, rain and temperature sensors, weatherproof enclosure and mobile data.</li>
+            <li>Training for the first youth crew: cleaning methods by dust type, electrical isolation and working safely on roofs and arrays.</li>
+            <li>Weekly measurement from June to September at CUT's 153.7 kWp campus plant, a goldfields mine plant and a western Free State farm.</li>
+            <li>A public report with the soiling rate, rain recovery and cost per verified clean at each site.</li>
+          </ul>
+        </div>
+        <div class="stack">
+          <h3>What partners get</h3>
+          <ul class="plain">
+            <li>Funders: named in the report, with progress updates and access to the dashboard during the pilot.</li>
+            <li>Site owners: a node on your array for the season and a clean-or-wait call with every reading.</li>
+            <li>Installers and O&amp;M companies: local dust data for quotes, and first access to trained crews.</li>
+            <li>Training partners: a verified job record for every learner who cleans with us.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>When</th><th>What happens</th></tr></thead>
+          <tbody>
+            <tr><td>Nov 2026 to May 2027</td><td>Build and bench-test three nodes, agree site access, train the first crew.</td></tr>
+            <tr><td>Jun to Sep 2027</td><td>Weekly readings at all three sites. Clean only when it pays, and verify every clean.</td></tr>
+            <tr><td>Oct 2027</td><td>Publish the Free State soiling results and the cost per verified clean.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONTACT -->
+  <section id="contact-us" class="sec">
+    <div class="wrap split">
+      <div class="side">
+        <h2>Contact us</h2>
+        <p class="muted">Tell us how you'd like to be involved and we'll send the budget and site plan.</p>
+      </div>
+      <form class="main form" id="contact" novalidate>
+        <div class="field-row">
+          <div class="field"><label for="f-name">Full name</label><input type="text" id="f-name" name="name" autocomplete="name" required /><span class="error" hidden>Enter your name.</span></div>
+          <div class="field"><label for="f-org">Organisation <span class="muted">(optional)</span></label><input type="text" id="f-org" name="org" autocomplete="organization" /></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label for="f-email">Email</label><input type="email" id="f-email" name="email" autocomplete="email" required /><span class="error" hidden>Enter a valid email address.</span></div>
+          <div class="field"><label for="f-phone">Phone <span class="muted">(optional)</span></label><input type="tel" id="f-phone" name="phone" autocomplete="tel" /></div>
+        </div>
+        <div class="field">
+          <label for="f-role">I'm interested as</label>
+          <select id="f-role" name="role">
+            <option>A funder or sponsor</option>
+            <option>A mine site owner</option>
+            <option>A farm owner</option>
+            <option>A business or home owner</option>
+            <option>An installer or O&amp;M company</option>
+            <option>A training partner</option>
+          </select>
+        </div>
+        <div class="field"><label for="f-msg">Message <span class="muted">(optional)</span></label><textarea id="f-msg" name="message"></textarea></div>
+        <div class="row">
+          <button type="submit" class="btn" id="f-send">Send to the team</button>
+        </div>
+        <div class="form-note" id="f-note" role="status" hidden></div>
+      </form>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <div class="stack" style="gap: var(--s2)">
+      <span class="brand"><img src="img/logo-mark.svg" alt="" width="47" height="32" /><span class="wordmark">SediGr<span class="led">ı</span>d</span></span>
+      <p>Dust monitoring and trained local cleaning crews for solar sites in the Free State.</p>
+    </div>
+    <div>
+      <h3>Research</h3>
+      <ul>
+        <li><a href="https://edoc.unibas.ch/90912">Vos, University of Basel (2021)</a></li>
+        <li><a href="https://science.uct.ac.za/node/3645">UCT Aeolian Research (2020)</a></li>
+        <li><a href="https://scholar.sun.ac.za/handle/10019.1/101028">Du Plessis, Stellenbosch (2017)</a></li>
+        <li><a href="https://elib.dlr.de/145456/1/swc2021-0096-Hanrieder.pdf">Hanrieder et al., DLR (2021)</a></li>
+        <li><a href="https://firstsolar.com/-/media/First-Solar/Technical-Documents/Series-4-Application-Note/Module-Cleaning-Guidelines.ashx">First Solar cleaning guidelines</a></li>
+      </ul>
+    </div>
+    <p class="legal">Built for the MICT SETA National Skills Competition Hackathon, Central University of Technology, Bloemfontein, 29 to 30 October 2026. Illustrations and demo readings are examples.</p>
+  </div>
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>

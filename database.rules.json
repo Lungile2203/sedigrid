@@ -1,0 +1,12 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "solarMonitoring": { ".read": true },
+    "solarHistory": { ".read": true },
+    "control": {
+      ".read": true,
+      "buzzerMuted": { ".write": true, ".validate": "newData.isBoolean()" }
+    }
+  }
+}

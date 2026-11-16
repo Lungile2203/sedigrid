@@ -1,0 +1,737 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SediGrid Live Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600&family=Montserrat:wght@700&display=swap">
+<style>
+/* SediGrid design system (same tokens as the app).
+   Panel A (clean reference) is always green, Panel B (dusty test) always purple.
+   Status: green ok, purple dust, olive warning, magenta alert/fault/money lost, grey off. No red, orange or blue. */
+:root {
+  --paper:#f7f6f3; --surface:#ffffff; --ink:#15191d; --on-ink:#ffffff; --muted:#555e67; --line:#dcd8d0;
+  --track:#e8e4dc; --off-bg:#ecebe7; --skel:#ebe8e2; --grid:#e4e0d8;
+  --act:#0f7f86; --act-hover:#0b666c; --act-bg:#ddf1f1; --act-ink:#0b5c61; --slate:#2e3a40; --led:#2fb14d;
+  --panel-a:#2e8b57; --panel-a-bg:#e3f3ea; --panel-b:#7b3fa8; --panel-b-bg:#f1e8f8;
+  --dust:#6a2e94; --dust-bg:#f1e8f8; --ok:#1f6f43; --ok-bg:#e2f3e9;
+  --warn:#6f6200; --warn-bg:#f5f0cf; --bad:#a8155f; --bad-bg:#fbe5f0;
+  --sans:"IBM Plex Sans", system-ui, sans-serif; --mono:"IBM Plex Mono", ui-monospace, monospace;
+  --s1:4px; --s2:8px; --s3:16px; --s4:24px; --s5:40px; --s6:64px; --r1:4px; --r2:8px;
+  --ease:cubic-bezier(0.2,0.7,0.2,1); --fast:160ms; --base:320ms;
+}
+* { box-sizing:border-box; }
+[hidden] { display:none !important; }
+html, body { margin:0; background:var(--paper); color:var(--ink); font-family:var(--sans); font-size:17px; line-height:28px; }
+button, input, select { font:inherit; }
+h1 { font-size:28px; line-height:36px; margin:0; font-weight:700; }
+h2 { font-size:20px; line-height:28px; margin:0; font-weight:700; }
+p { margin:0; }
+.small { font-size:15px; line-height:24px; }
+.label { font-size:13px; line-height:20px; font-weight:600; color:var(--muted); }
+.muted { color:var(--muted); }
+.mono { font-family:var(--mono); }
+.display { font-size:40px; line-height:48px; font-weight:600; }
+.display-sm { font-size:28px; line-height:36px; font-weight:600; }
+.bad-text { color:var(--bad); }
+.shell { max-width:1080px; margin:0 auto; padding:0 16px var(--s6); }
+.page { padding-top:var(--s5); display:flex; flex-direction:column; gap:var(--s4); }
+.stack { display:flex; flex-direction:column; gap:var(--s3); }
+.tight { display:flex; flex-direction:column; min-width:0; }
+.row { display:flex; gap:var(--s3); align-items:center; flex-wrap:wrap; }
+.between { justify-content:space-between; }
+.panel { background:var(--surface); border:1px solid var(--line); border-radius:var(--r2); padding:var(--s4); display:flex; flex-direction:column; gap:var(--s3); min-width:0; }
+
+/* Header */
+.top { position:sticky; top:0; z-index:5; background:var(--surface); border-top:4px solid var(--act); border-bottom:1px solid var(--line); }
+.top-in { max-width:1080px; margin:0 auto; padding:var(--s2) 16px; display:flex; gap:var(--s3); align-items:center; justify-content:space-between; flex-wrap:wrap; }
+.wordmark { font-family:"Montserrat", var(--sans); font-weight:700; font-size:22px; line-height:1; color:var(--slate); }
+.wordmark i { font-style:normal; position:relative; }
+.wordmark i::after { content:""; position:absolute; left:50%; top:-3px; width:7px; height:7px; margin-left:-3.5px; border-radius:50%; background:var(--led); }
+.wordmark.alarm i::after { background:var(--bad); animation:blink 1s steps(2) infinite; }
+@keyframes blink { 50% { opacity:.2; } }
+.mode { font-family:var(--mono); font-size:13px; line-height:20px; font-weight:600; padding:2px var(--s2); border-radius:var(--r1); }
+.pill { display:inline-flex; align-items:center; min-height:28px; padding:0 var(--s2); border-radius:var(--r1); font-size:13px; line-height:20px; font-weight:600; white-space:nowrap; }
+.t-ok { background:var(--ok-bg); color:var(--ok); }
+.t-dust { background:var(--dust-bg); color:var(--dust); }
+.t-warn { background:var(--warn-bg); color:var(--warn); }
+.t-bad { background:var(--bad-bg); color:var(--bad); }
+.t-off { background:var(--off-bg); color:var(--muted); }
+.t-act { background:var(--act-bg); color:var(--act-ink); }
+
+/* Controls */
+.btn { display:inline-flex; align-items:center; justify-content:center; gap:var(--s2); min-height:48px; padding:0 var(--s4); border-radius:var(--r1); border:1px solid var(--act); background:var(--act); color:var(--on-ink); font-weight:600; font-size:15px; cursor:pointer; position:relative; overflow:hidden; transition:background-color var(--fast) var(--ease), border-color var(--fast) var(--ease); }
+.btn:hover:not(:disabled) { background:var(--act-hover); border-color:var(--act-hover); }
+.btn:disabled { cursor:default; opacity:.7; }
+.btn.ghost { background:var(--surface); color:var(--ink); border-color:var(--line); }
+.btn.ghost:hover:not(:disabled) { background:var(--paper); border-color:var(--ink); }
+.btn.alarm { background:var(--bad); border-color:var(--bad); }
+.btn.alarm:hover:not(:disabled) { background:#86104b; border-color:#86104b; }
+.btn .bar { position:absolute; left:0; bottom:0; height:3px; width:0; background:var(--on-ink); opacity:.8; }
+.btn.busy .bar { animation:load 1.2s var(--ease) infinite; }
+@keyframes load { 0% { width:0; left:0; } 60% { width:70%; left:15%; } 100% { width:0; left:100%; } }
+.chip { min-height:44px; padding:0 var(--s3); border-radius:var(--r1); border:1px solid var(--line); background:var(--surface); color:var(--ink); font-weight:600; font-size:15px; cursor:pointer; transition:background-color var(--fast) var(--ease), border-color var(--fast) var(--ease); }
+.chip:hover { border-color:var(--ink); }
+.chip[aria-pressed="true"] { background:var(--slate); color:var(--on-ink); border-color:var(--slate); box-shadow:inset 0 -3px 0 var(--act); }
+select { min-height:44px; padding:0 var(--s3); border:1px solid var(--line); border-radius:var(--r1); background:var(--surface); font:600 15px var(--sans); color:var(--ink); }
+:focus-visible { outline:2px solid var(--dust); outline-offset:2px; }
+
+/* Alarm banner */
+.banner { display:none; border:1px solid var(--bad); background:var(--bad-bg); border-radius:var(--r2); padding:var(--s3) var(--s4); gap:var(--s3); align-items:center; justify-content:space-between; flex-wrap:wrap; }
+.banner.show { display:flex; }
+.banner.muted-state { border-color:var(--line); background:var(--off-bg); }
+
+/* Live panels */
+.live-panels { display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:var(--s4); }
+.live-card { background:var(--surface); border:1px solid var(--line); border-radius:var(--r2); padding:var(--s4); display:flex; flex-direction:column; gap:var(--s2); border-top:4px solid var(--line); }
+.live-card.a { border-top-color:var(--panel-a); }
+.live-card.b { border-top-color:var(--panel-b); }
+.live-card.sensors { border-top-color:var(--slate); }
+.live-card.a .display { color:var(--panel-a); }
+.live-card.b .display { color:var(--panel-b); }
+.meter { height:12px; background:var(--track); border-radius:var(--r1); overflow:hidden; }
+.meter > i { display:block; height:100%; transition:width var(--base) var(--ease); }
+.a .meter > i { background:var(--panel-a); }
+.b .meter > i { background:var(--panel-b); }
+dl { margin:0; display:grid; gap:var(--s1); }
+dl div { display:flex; justify-content:space-between; gap:var(--s2); font-size:15px; line-height:24px; }
+dt { color:var(--muted); } dd { margin:0; font-family:var(--mono); }
+.sensor { display:flex; justify-content:space-between; align-items:center; gap:var(--s2); font-size:15px; line-height:24px; }
+.gauge { position:relative; height:12px; background:var(--track); border-radius:var(--r1); }
+.gauge > i { display:block; height:100%; border-radius:var(--r1); background:var(--panel-b); transition:width var(--base) var(--ease); }
+.gauge > b { position:absolute; top:-4px; bottom:-4px; width:2px; background:var(--ink); }
+
+/* Diagnosis */
+.verdict { border-radius:var(--r1); padding:var(--s3); display:flex; flex-direction:column; gap:var(--s1); }
+ol.steps { margin:0; padding-left:var(--s4); display:flex; flex-direction:column; gap:var(--s2); font-size:15px; line-height:24px; }
+
+/* Charts */
+.chart { display:flex; flex-direction:column; gap:var(--s2); }
+.chart svg { display:block; touch-action:none; }
+.chart-grid { stroke:var(--grid); }
+.chart-text { fill:var(--muted); font-family:var(--mono); font-size:11px; }
+.line-a { fill:none; stroke:var(--panel-a); stroke-width:2.5; }
+.line-b { fill:none; stroke:var(--panel-b); stroke-width:2.5; }
+.gap-band { fill:var(--bad); opacity:.14; }
+.chart-cursor { stroke:var(--ink); stroke-dasharray:3 3; opacity:.5; }
+.dot-a { fill:var(--panel-a); } .dot-b { fill:var(--panel-b); } .dot-loss { fill:var(--bad); }
+.loss-area { fill:var(--bad); opacity:.12; }
+.loss-line { fill:none; stroke:var(--bad); stroke-width:2.5; }
+.chart-read { display:flex; gap:var(--s4); flex-wrap:wrap; }
+.key { display:inline-block; width:12px; height:12px; border-radius:2px; margin-right:6px; vertical-align:-1px; }
+.key.a { background:var(--panel-a); } .key.b { background:var(--panel-b); } .key.gap { background:var(--bad); opacity:.4; }
+
+/* Wait slider */
+.bars { display:flex; flex-direction:column; gap:var(--s2); }
+.bar-row { display:grid; grid-template-columns:110px 1fr 120px; gap:var(--s3); align-items:center; font-size:15px; }
+.bar-row strong { text-align:right; }
+.hbar { height:16px; background:var(--track); border-radius:var(--r1); overflow:hidden; }
+.hbar > i { display:block; height:100%; transition:width var(--base) var(--ease); }
+.hbar.loss > i { background:var(--bad); } .hbar.clean > i { background:var(--act); }
+input[type=range] { width:100%; accent-color:var(--act); min-height:44px; }
+
+/* Tables */
+.table-wrap { overflow-x:auto; }
+table { border-collapse:collapse; width:100%; font-size:15px; line-height:24px; }
+th { text-align:left; padding:var(--s2) var(--s3) var(--s2) 0; border-bottom:1px solid var(--ink); font-size:13px; line-height:20px; font-weight:600; color:var(--muted); white-space:nowrap; }
+td { text-align:left; padding:var(--s2) var(--s3) var(--s2) 0; border-bottom:1px solid var(--line); white-space:nowrap; }
+td.num, th.num { text-align:right; font-family:var(--mono); }
+tr.new td { animation:flash 1.2s var(--ease); }
+@keyframes flash { from { background:var(--act-bg); } to { background:transparent; } }
+.events { margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:var(--s2); font-size:15px; line-height:24px; }
+.events li { display:grid; grid-template-columns:84px 1fr; gap:var(--s3); }
+
+/* Skeleton */
+.skel { background:linear-gradient(90deg, var(--skel) 0%, #f3f1ec 50%, var(--skel) 100%); background-size:200% 100%; border-radius:var(--r2); animation:shimmer 1.4s linear infinite; }
+@keyframes shimmer { from { background-position:200% 0; } to { background-position:-200% 0; } }
+.fade-in { animation:fadein var(--base) var(--ease) both; }
+@keyframes fadein { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:none; } }
+.error { border-color:var(--bad); }
+code { font-family:var(--mono); font-size:14px; background:var(--off-bg); padding:1px 4px; border-radius:var(--r1); }
+@media (prefers-reduced-motion: reduce) { * { animation:none !important; transition:none !important; } }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="top-in">
+    <div class="row" style="gap:12px">
+      <span class="wordmark" id="wordmark">SediGr<i>i</i>d</span>
+      <span class="mode t-off" id="mode">Connecting…</span>
+    </div>
+    <div class="row" style="gap:8px">
+      <label class="label" for="site">Node installed at</label>
+      <select id="site"></select>
+    </div>
+  </div>
+</header>
+
+<main class="shell">
+<div class="page">
+
+  <div class="row between">
+    <div class="tight">
+      <h1>Live</h1>
+      <p class="muted" id="subline">Waiting for the first reading from the sensor node…</p>
+    </div>
+    <div class="row" id="simChips" role="group" aria-label="Simulate a condition" hidden></div>
+  </div>
+  <p class="small muted" id="sceneSay" hidden></p>
+
+  <div class="panel error" id="errorPanel" hidden></div>
+
+  <div class="banner" id="banner" role="alert">
+    <div class="tight">
+      <strong id="bannerTitle">Buzzer sounding</strong>
+      <span class="small" id="bannerText"></span>
+    </div>
+    <button class="btn alarm" id="muteBtn"><span id="muteLabel">Silence buzzer</span><span class="bar"></span></button>
+  </div>
+
+  <div class="live-panels">
+    <div class="live-card a">
+      <div class="tight"><strong>Panel A, reference (kept clean)</strong><span class="label">GPIO34 · panel1Voltage</span></div>
+      <span class="display mono" id="aV">–</span>
+      <div class="meter" aria-hidden="true"><i id="aBar" style="width:0"></i></div>
+      <dl><div><dt>Share of Panel A</dt><dd>100%</dd></div></dl>
+    </div>
+    <div class="live-card b">
+      <div class="tight"><strong>Panel B, test (on the array)</strong><span class="label">GPIO35 · panel2Voltage</span></div>
+      <span class="display mono" id="bV">–</span>
+      <div class="meter" aria-hidden="true"><i id="bBar" style="width:0"></i></div>
+      <dl><div><dt>Share of Panel A</dt><dd id="bShare">–</dd></div></dl>
+    </div>
+    <div class="live-card sensors">
+      <strong>Sensors</strong>
+      <div class="sensor"><span>Soiling</span><span class="display-sm mono" id="soil">–</span></div>
+      <div class="gauge" aria-hidden="true"><i id="soilBar" style="width:0"></i><b id="soilMark"></b></div>
+      <span class="small muted" id="soilNote"></span>
+      <div class="sensor"><span>Temperature (DHT11)</span><span class="mono" id="temp">–</span></div>
+      <div class="sensor"><span>Humidity (DHT11)</span><span class="mono" id="hum">–</span></div>
+      <div class="sensor"><span>Buzzer (GPIO23)</span><span class="pill t-off" id="buzz">off</span></div>
+      <div class="sensor"><span>Diagnosis</span><strong class="small" id="diagShort">–</strong></div>
+    </div>
+  </div>
+
+  <div class="panel" id="diagPanel">
+    <div class="row between"><h2 id="diagTitle">No readings yet</h2><span class="pill t-off" id="diagPill">waiting</span></div>
+    <p id="diagText" class="muted">Waiting for the sensor node to report.</p>
+    <div id="plan" hidden class="stack">
+      <div class="tight"><strong id="planMethod"></strong><span class="small muted" id="planWhy"></span></div>
+      <ol class="steps" id="planSteps"></ol>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="row between"><h2>Both panels, live</h2><span class="small muted">Hover or tap the chart to read any moment</span></div>
+    <div class="chart" id="powerChart"><div class="skel" style="height:220px"></div></div>
+  </div>
+
+  <div class="panel">
+    <div class="row between">
+      <div class="tight">
+        <h2>The longer you wait, the more you lose</h2>
+        <span class="small muted" id="lossScale"></span>
+      </div>
+      <div class="tight" style="text-align:right" id="lossHead" hidden>
+        <span class="display mono bad-text" id="lossNow"></span>
+        <span class="small muted" id="lossSince"></span>
+      </div>
+    </div>
+    <div id="lossChart"></div>
+    <div class="stack">
+      <label class="stack" for="wait" style="gap:0">
+        <span>If you wait <strong class="mono" id="waitDays">7 days</strong> before cleaning</span>
+        <input id="wait" type="range" min="0" max="60" value="7">
+      </label>
+      <div class="bars">
+        <div class="bar-row"><span>Lost to dust</span><span class="hbar loss"><i id="waitLossBar"></i></span><strong class="mono" id="waitLoss"></strong></div>
+        <div class="bar-row"><span>One clean</span><span class="hbar clean"><i id="waitCleanBar"></i></span><strong class="mono" id="waitClean"></strong></div>
+      </div>
+      <p class="verdict t-off" id="waitVerdict"></p>
+      <span class="small muted" id="waitRate"></span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="row between">
+      <div class="tight">
+        <h2>Recorded readings</h2>
+        <span class="small muted" id="recNote">Every reading the dashboard receives is kept here.</span>
+      </div>
+      <button class="btn ghost" id="csvBtn">Download CSV<span class="bar"></span></button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Time</th><th class="num">Panel A V</th><th class="num">Panel B V</th><th class="num">Soiling</th><th class="num">Temp</th><th class="num">Humidity</th><th>Buzzer</th><th>Diagnosis</th></tr></thead>
+        <tbody id="recBody"><tr><td colspan="8"><div class="skel" style="height:24px"></div></td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="row between">
+      <div class="tight"><h2>Alert log</h2><span class="small muted">Each alert from the node, what it cost and how it ended</span></div>
+      <button class="btn ghost" id="evBtn" disabled>Download evidence<span class="bar"></span></button>
+    </div>
+    <div id="alerts"><p class="small muted">No alerts yet. Cover Panel B to start one.</p></div>
+  </div>
+
+</div>
+</main>
+
+<script type="module">
+// Firebase is loaded only in live mode, so ?sim works even without internet.
+let ref, onValue, query, limitToLast, set;
+
+// ---------- Settings (keep in step with the Arduino sketch) ----------
+const firebaseConfig = {
+  apiKey: "AIzaSyCSI2iCBVozhNvG04xbBCMnAJixmp5QSrw",
+  authDomain: "sedigrid-dbef5.firebaseapp.com",
+  databaseURL: "https://sedigrid-dbef5-default-rtdb.firebaseio.com",
+  projectId: "sedigrid-dbef5",
+  appId: "1:222029597381:web:a0fdadd8842be994153eac",
+};
+const NODE = { minRefV: 1.0, alarmPct: 8, confirm: 3, offlineAfterS: 30 };
+const YIELD = 6.4;        // kWh per kW per day, Free State
+const PAYBACK_DAYS = 30;  // clean now if it pays back within this
+const SITES = {
+  'SITE-001': { name: 'Tshepong mine solar plant', capacityKW: 10000, tariff: 2.0, cleanCost: 60000, dust: 'tailings' },
+  'SITE-002': { name: 'Irrigation farm, Bultfontein', capacityKW: 300, tariff: 2.2, cleanCost: 4500, dust: 'farm' },
+  'SITE-003': { name: 'Fichardt Park street batch', capacityKW: 30, tariff: 3.4, cleanCost: 1500, dust: 'general' },
+  'SITE-004': { name: 'CUT campus plant', capacityKW: 153.7, tariff: 2.6, cleanCost: 3500, dust: 'general' },
+};
+const METHODS = {
+  farm: { method: 'Dry soft brush', why: 'Loose soil dust brushes off dry, which saves water.', steps: ['Clean at dawn with the inverter off', 'Soft non-conductive brush, top to bottom', 'Rinse with deionised water only if dust has caked'] },
+  tailings: { method: 'Soft wet clean', why: 'Silica is hard. Scrubbing it dry can scratch the glass.', steps: ['Clean at dawn with the inverter off', 'Wet panels with deionised water to loosen the crust', 'Soft brush, low pressure under 35 bar', 'No dry scrubbing'] },
+  general: { method: 'Water-fed soft brush', why: 'Hard tap water leaves mineral spots that cut output.', steps: ['Clean at dawn with the inverter off', 'Water-fed pole with soft brush from the ground', 'Deionised or low-hardness water to avoid spots'] },
+};
+const SCENES = [
+  { key: 'clean', label: 'Clean panels', say: 'Panel A and Panel B read the same, so soiling is 0%.' },
+  { key: 'cloud', label: 'Cloud passes', say: 'Both panels drop together. The ratio holds, so there is no alarm and no clean.' },
+  { key: 'dust', label: 'Dust builds up', say: `Only Panel B drops. Soiling passes ${NODE.alarmPct}%, and after ${NODE.confirm} readings in a row the buzzer sounds.` },
+  { key: 'dew', label: 'Humid night', say: 'Humidity climbs over 85%. Dew mixes with the dust and sticks it to the glass, so the clean gets harder.' },
+  { key: 'fault', label: 'Wiring fault', say: 'Panel B reads almost nothing while Panel A has light. That needs an electrician, not a cleaner.' },
+  { key: 'night', label: 'Night falls', say: `Panel A drops under ${NODE.minRefV} V, so the node stops judging until daylight.` },
+];
+
+// ---------- Helpers ----------
+const $ = (id) => document.getElementById(id);
+const fmt = (n) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+const rand2 = (n) => { const [w, c] = n.toFixed(2).split('.'); return `R${fmt(+w)}.${c}`; };
+const clock = (ms) => new Date(ms).toLocaleTimeString('en-ZA', { hour12: false });
+const duration = (ms) => { const s = Math.max(0, Math.round(ms / 1000)); return s < 60 ? `${s} s` : s < 3600 ? `${Math.floor(s / 60)} min ${s % 60} s` : `${Math.floor(s / 3600)} h ${Math.floor((s % 3600) / 60)} min`; };
+const num = (v) => (typeof v === 'number' && isFinite(v) ? v : null);
+const store = { get(k, d) { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} } };
+const SIM = new URLSearchParams(location.search).has('sim');
+const KEY = SIM ? 'sg.dash.sim' : 'sg.dash';
+
+// ---------- State ----------
+const state = {
+  siteId: store.get(KEY + '.site', 'SITE-001'),
+  latest: null,          // newest reading
+  lastSeen: 0,           // browser time it arrived
+  muted: false,
+  records: store.get(KEY + '.records', []),   // every reading received, newest last
+  cloud: [],             // history stored in Firebase by the node
+  incidents: store.get(KEY + '.incidents', []),
+  connected: false,
+};
+const site = () => SITES[state.siteId];
+
+// ---------- Diagnosis (same wording as the SediGrid app) ----------
+function diagnose(r, prev) {
+  if (!r) return { state: 'offline', title: 'No readings yet', text: 'Waiting for the sensor node to report.', pill: ['t-off', 'waiting'] };
+  if (!online()) return { state: 'offline', title: 'Node offline', text: 'The sensor node has stopped reporting. Check its power and Wi-Fi. The diagnosis resumes when it reconnects.', pill: ['t-off', 'offline'] };
+  const s = site();
+  if (r.a < NODE.minRefV) return { state: 'dark', title: 'Too dark to judge', text: `Panel A is under ${NODE.minRefV} V, so the node isn't judging soiling. Readings resume in daylight.`, pill: ['t-off', 'dark'] };
+  const ratio = Math.min(1.05, r.b / r.a);
+  const loss = Math.max(0, 1 - ratio);
+  const lossRandDay = s.capacityKW * YIELD * loss * s.tariff;
+  const payback = lossRandDay > 0 ? s.cleanCost / lossRandDay : Infinity;
+  const base = { ratio, loss, lossRandDay, payback };
+  if (r.b < 0.1 * r.a) return { ...base, state: 'fault', title: 'Possible fault', text: 'The array reads almost nothing while the reference panel has light. Check wiring, fuses or the inverter. Call an electrician, not a cleaner.', pill: ['t-bad', 'fault'] };
+  if (ratio >= 0.97) return { ...base, state: 'clean', title: 'Clean', text: 'The array matches the clean reference panel. No action needed.', pill: ['t-ok', 'clean'] };
+  if (prev && prev.a >= NODE.minRefV && prev.b / prev.a - ratio > 0.08 && ratio < 0.9) return { ...base, state: 'shade', title: 'Sudden drop: shade or blockage', text: 'Output fell quickly, which dust does not do. Check for shade, debris or bird droppings.', pill: ['t-warn', 'check'] };
+  const humid = r.hum != null && r.hum >= 85;
+  const cleanNow = payback <= PAYBACK_DAYS;
+  return {
+    ...base, state: 'dust', clean: cleanNow,
+    title: cleanNow ? 'Dust: clean now' : 'Dust: wait for now',
+    text: (cleanNow
+      ? `A clean costs R${fmt(s.cleanCost)} and pays for itself in about ${Math.max(1, Math.round(payback))} days.`
+      : `Dust is costing R${fmt(lossRandDay)} a day. A clean would take ${Math.round(payback)} days to pay off, so wait.`)
+      + (humid ? ' Humidity is high: dew can cement this dust to the glass, so clean before it sets.' : ''),
+    pill: ['t-dust', cleanNow ? 'clean now' : 'wait'],
+  };
+}
+const online = () => SIM || (state.lastSeen && Date.now() - state.lastSeen < NODE.offlineAfterS * 1000);
+const soilingOf = (r) => (r && r.a >= NODE.minRefV ? Math.max(0, (1 - r.b / r.a) * 100) : null);
+
+// ---------- Incoming readings ----------
+function normalise(raw) {
+  if (!raw) return null;
+  const a = num(raw.panel1Voltage), b = num(raw.panel2Voltage);
+  if (a == null || b == null) return null;
+  return {
+    a, b, temp: num(raw.temperature), hum: num(raw.humidity),
+    buzzer: raw.buzzerStatus === 'ON' || raw.lowVoltageAlarm === true || raw.alarmActive === true,
+    reason: raw.alarmReason || null,
+    devMs: num(raw.timestampMillis), at: num(raw.updatedAt) || Date.now(),
+  };
+}
+
+function receive(r) {
+  if (!r) return;
+  const prev = state.latest;
+  // The node rewrites the same record every 2 s; only count it when something changed.
+  if (prev && prev.devMs != null && r.devMs === prev.devMs) return;
+  r.t = Date.now();
+  state.latest = r;
+  state.lastSeen = r.t;
+  const d = diagnose(r, prev);
+  state.records.push({ t: r.t, a: r.a, b: r.b, temp: r.temp, hum: r.hum, buzzer: r.buzzer, diag: d.title });
+  if (state.records.length > 2000) state.records.splice(0, state.records.length - 2000);
+  store.set(KEY + '.records', state.records.slice(-500));
+  trackIncident(r, d, prev);
+  render(true);
+}
+
+// ---------- Alerts: start when the buzzer starts, end when it stops ----------
+function trackIncident(r, d, prev) {
+  let inc = state.incidents.find((i) => !i.end && i.siteId === state.siteId);
+  const now = r.t;
+  const pct = soilingOf(r);
+  const log = (i, text) => i.events.push({ at: now, text });
+  if (r.buzzer && !inc) {
+    inc = { id: `${state.siteId}-${now}`, siteId: state.siteId, siteName: site().name, start: now, end: null, rand: 0, peakPct: pct ?? 0, series: [{ t: now, rand: 0 }], events: [], rateDay: d.lossRandDay || 0 };
+    state.incidents.unshift(inc);
+    log(inc, `Alert from the sensor node: ${d.title}. Soiling ${pct != null ? pct.toFixed(1) : '?'}%, Panel A ${r.a.toFixed(2)} V, Panel B ${r.b.toFixed(2)} V. Buzzer on.`);
+    beep();
+  }
+  if (inc) {
+    const dt = prev ? Math.min(30, (now - prev.t) / 1000) : 0;
+    if (dt > 0 && d.lossRandDay) { inc.rand += (d.lossRandDay * dt) / 86400; inc.rateDay = d.lossRandDay; }
+    if (pct != null) inc.peakPct = Math.max(inc.peakPct, pct);
+    inc.series.push({ t: now, rand: inc.rand });
+    if (inc.series.length > 900) inc.series.splice(1, inc.series.length - 900);
+    if (!r.buzzer) {
+      inc.end = now;
+      log(inc, `Alert cleared: Panel B back to ${pct != null ? (100 - pct).toFixed(0) : '?'}% of Panel A. Lost during the alert: ${rand2(inc.rand)}.`);
+      state.muted = false;
+    }
+  }
+  state.incidents = state.incidents.slice(0, 20);
+  store.set(KEY + '.incidents', state.incidents);
+}
+
+function beep() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [0, 0.25, 0.5].forEach((t) => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.frequency.value = 880;
+      g.gain.setValueAtTime(0.0001, ctx.currentTime + t);
+      g.gain.exponentialRampToValueAtTime(0.2, ctx.currentTime + t + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + t + 0.18);
+      o.connect(g).connect(ctx.destination); o.start(ctx.currentTime + t); o.stop(ctx.currentTime + t + 0.2);
+    });
+  } catch {}
+}
+
+// ---------- Charts ----------
+function pointer(svg, count, W, L, R, onPick) {
+  const pick = (e) => { const box = svg.getBoundingClientRect(); const px = ((e.clientX - box.left) / box.width) * W; onPick(Math.max(0, Math.min(count - 1, Math.round(((px - L) / (W - L - R)) * (count - 1))))); };
+  svg.addEventListener('pointermove', pick); svg.addEventListener('pointerdown', pick); svg.addEventListener('pointerleave', () => onPick(null));
+}
+
+function powerChart() {
+  const host = $('powerChart');
+  const pts = [...state.cloud.filter((h) => !state.records.length || h.t < state.records[0].t), ...state.records].slice(-120);
+  if (pts.length < 2) { host.innerHTML = '<div class="skel" style="height:220px"></div>'; return; }
+  const W = 800, H = 220, L = 48, R = 8, T = 10, B = 22;
+  const hi = Math.max(1, ...pts.map((p) => p.a)) * 1.08;
+  const lo = Math.max(0, Math.min(...pts.map((p) => p.b)) * 0.7);
+  const x = (i) => L + (i / (pts.length - 1)) * (W - L - R);
+  const y = (v) => T + (1 - (v - lo) / (hi - lo || 1)) * (H - T - B);
+  const lineA = pts.map((p, i) => `${x(i)},${y(p.a)}`).join(' ');
+  const lineB = pts.map((p, i) => `${x(i)},${y(p.b)}`).join(' ');
+  const gap = `${lineA} ${pts.map((p, i) => `${x(i)},${y(p.b)}`).reverse().join(' ')}`;
+  const ticks = [0, 0.25, 0.5, 0.75, 1].map((f) => lo + (hi - lo) * f);
+  host.innerHTML = `
+    <svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Voltage from both panels over the last ${pts.length} readings">
+      ${ticks.map((t) => `<line class="chart-grid" x1="${L}" x2="${W - R}" y1="${y(t)}" y2="${y(t)}"/><text class="chart-text" x="${L - 6}" y="${y(t) + 4}" text-anchor="end">${t.toFixed(1)}</text>`).join('')}
+      <text class="chart-text" x="${L}" y="${H - 6}">volts, older</text>
+      <text class="chart-text" x="${W - R}" y="${H - 6}" text-anchor="end">now</text>
+      <polygon class="gap-band" points="${gap}"/>
+      <polyline class="line-a" points="${lineA}"/><polyline class="line-b" points="${lineB}"/>
+      <line class="chart-cursor" id="pcCur" y1="${T}" y2="${H - B}"/>
+      <circle class="dot-a" id="pcA" r="5"/><circle class="dot-b" id="pcB" r="5"/>
+    </svg>
+    <div class="chart-read small" id="pcRead"></div>`;
+  const show = (hover) => {
+    const i = hover ?? pts.length - 1, p = pts[i];
+    $('pcCur').setAttribute('x1', x(i)); $('pcCur').setAttribute('x2', x(i));
+    $('pcA').setAttribute('cx', x(i)); $('pcA').setAttribute('cy', y(p.a));
+    $('pcB').setAttribute('cx', x(i)); $('pcB').setAttribute('cy', y(p.b));
+    $('pcRead').innerHTML = `<span class="mono">${clock(p.t)}</span>
+      <span><i class="key a"></i>Panel A <span class="mono">${p.a.toFixed(2)} V</span></span>
+      <span><i class="key b"></i>Panel B <span class="mono">${p.b.toFixed(2)} V</span></span>
+      <span><i class="key gap"></i>Lost to dust <strong class="mono">${p.a >= NODE.minRefV ? Math.max(0, (1 - p.b / p.a) * 100).toFixed(1) + '%' : 'dark'}</strong></span>`;
+  };
+  pointer(host.querySelector('svg'), pts.length, W, L, R, show);
+  show(null);
+}
+
+function lossChart(inc) {
+  const host = $('lossChart');
+  if (!inc) { host.innerHTML = `<p class="verdict t-off">No alert yet at this site. ${SIM ? 'Press Dust builds up above to start one.' : 'Cover Panel B to start one.'}</p>`; return; }
+  const pts = inc.end ? inc.series : [...inc.series, { t: Date.now(), rand: inc.rand }];
+  const W = 800, H = 200, L = 72, R = 8, T = 10, B = 22;
+  const t0 = inc.start, t1 = Math.max(t0 + 10000, pts[pts.length - 1].t);
+  const max = Math.max(1, ...pts.map((p) => p.rand)) * 1.15;
+  const x = (t) => L + ((t - t0) / (t1 - t0)) * (W - L - R);
+  const y = (v) => T + (1 - v / max) * (H - T - B);
+  const line = pts.map((p) => `${x(p.t)},${y(p.rand)}`).join(' ');
+  const ticks = [0, 0.5, 1].map((f) => (max / 1.15) * f);
+  host.innerHTML = `<div class="chart">
+    <svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Money lost since the alert at ${clock(inc.start)}: ${rand2(inc.rand)}">
+      ${ticks.map((t) => `<line class="chart-grid" x1="${L}" x2="${W - R}" y1="${y(t)}" y2="${y(t)}"/><text class="chart-text" x="${L - 6}" y="${y(t) + 4}" text-anchor="end">${rand2(t)}</text>`).join('')}
+      <polygon class="loss-area" points="${x(pts[0].t)},${H - B} ${line} ${x(pts[pts.length - 1].t)},${H - B}"/>
+      <polyline class="loss-line" points="${line}"/>
+      <circle class="dot-loss" id="lcDot" r="5"/>
+      <text class="chart-text" x="${L}" y="${H - 6}">${clock(inc.start)} alert</text>
+      <text class="chart-text" x="${W - R}" y="${H - 6}" text-anchor="end">${inc.end ? clock(inc.end) + ' cleared' : 'now'}</text>
+    </svg>
+    <div class="chart-read small" id="lcRead"></div></div>`;
+  const show = (hover) => {
+    const p = pts[hover ?? pts.length - 1];
+    $('lcDot').setAttribute('cx', x(p.t)); $('lcDot').setAttribute('cy', y(p.rand));
+    $('lcRead').innerHTML = `<span class="mono">${clock(p.t)}</span><span>${duration(p.t - inc.start)} after the alert</span><span>Lost <strong class="mono">${rand2(p.rand)}</strong></span>`;
+  };
+  pointer(host.querySelector('svg'), pts.length, W, L, R, show);
+  show(null);
+}
+
+// ---------- Render ----------
+let lastRecCount = 0;
+function render(fresh) {
+  const r = state.latest, s = site();
+  const prev = state.records.length > 1 ? state.records[state.records.length - 2] : null;
+  const d = diagnose(r, prev);
+  const isOn = online();
+  const sounding = r && isOn && r.buzzer && !state.muted;
+
+  // header
+  const mode = $('mode');
+  if (SIM) { mode.className = 'mode t-act'; mode.textContent = 'Simulation'; }
+  else if (!state.connected) { mode.className = 'mode t-off'; mode.textContent = 'Connecting…'; }
+  else if (!r) { mode.className = 'mode t-off'; mode.textContent = 'Waiting for node'; }
+  else if (isOn) { mode.className = 'mode t-ok'; mode.textContent = 'Live'; }
+  else { mode.className = 'mode t-warn'; mode.textContent = 'Node offline'; }
+  $('wordmark').classList.toggle('alarm', !!sounding);
+  $('subline').textContent = r
+    ? `${s.name}, ${s.capacityKW >= 1000 ? s.capacityKW / 1000 + ' MW' : s.capacityKW + ' kW'}. ${isOn ? `Reading every 2 s, last ${clock(state.lastSeen)}.` : 'Sensor node offline.'}`
+    : `${s.name}. Waiting for the first reading from the sensor node…`;
+
+  // panels
+  const scale = Math.max(6, ...(state.records.slice(-60).map((p) => p.a)));
+  $('aV').textContent = r ? `${r.a.toFixed(2)} V` : '–';
+  $('bV').textContent = r ? `${r.b.toFixed(2)} V` : '–';
+  $('aBar').style.width = r ? `${Math.min(100, (r.a / scale) * 100)}%` : '0';
+  $('bBar').style.width = r ? `${Math.min(100, (r.b / scale) * 100)}%` : '0';
+  const soil = soilingOf(r);
+  $('bShare').textContent = soil != null ? `${(100 - soil).toFixed(0)}%` : '–';
+  $('soil').textContent = soil != null ? `${soil.toFixed(1)}%` : r ? 'dark' : '–';
+  $('soil').classList.toggle('bad-text', soil != null && soil >= NODE.alarmPct);
+  $('soilBar').style.width = `${Math.min(100, ((soil || 0) / 20) * 100)}%`;
+  $('soilMark').style.left = `${(NODE.alarmPct / 20) * 100}%`;
+  $('soilNote').textContent = `Buzzer at ${NODE.alarmPct}%, after ${NODE.confirm} readings`;
+  $('temp').textContent = r && r.temp != null ? `${r.temp.toFixed(1)} °C` : '–';
+  $('hum').textContent = r && r.hum != null ? `${r.hum.toFixed(0)}%` : '–';
+  const buzz = $('buzz');
+  if (r && isOn && r.buzzer) { buzz.className = `pill ${state.muted ? 't-off' : 't-bad'}`; buzz.textContent = state.muted ? 'silenced' : 'sounding'; }
+  else { buzz.className = 'pill t-ok'; buzz.textContent = 'off'; }
+  $('diagShort').textContent = d.title;
+
+  // banner
+  const banner = $('banner');
+  banner.classList.toggle('show', !!(r && isOn && r.buzzer));
+  banner.classList.toggle('muted-state', !!state.muted);
+  $('bannerTitle').textContent = state.muted ? `Buzzer silenced at ${s.name}` : `Buzzer sounding at ${s.name}`;
+  $('bannerText').textContent = `${d.title}. ${d.text}`;
+  $('muteBtn').hidden = !!state.muted;
+
+  // diagnosis
+  $('diagTitle').textContent = d.title;
+  $('diagText').textContent = d.text;
+  $('diagPill').className = `pill ${d.pill[0]}`; $('diagPill').textContent = d.pill[1];
+  const showPlan = d.state === 'dust';
+  $('plan').hidden = !showPlan;
+  if (showPlan) {
+    const m = METHODS[s.dust] || METHODS.general;
+    $('planMethod').textContent = `Cleaning plan: ${m.method}`;
+    $('planWhy').textContent = m.why;
+    $('planSteps').innerHTML = m.steps.map((x) => `<li>${x}</li>`).join('');
+  }
+
+  // charts and loss
+  powerChart();
+  const inc = state.incidents.find((i) => i.siteId === state.siteId);
+  $('lossScale').textContent = `Measured soiling, scaled to ${s.name}'s ${s.capacityKW >= 1000 ? s.capacityKW / 1000 + ' MW' : s.capacityKW + ' kW'} at R${s.tariff}/kWh`;
+  $('lossHead').hidden = !inc;
+  if (inc) {
+    $('lossNow').textContent = rand2(inc.rand);
+    $('lossSince').textContent = inc.end ? `lost in ${duration(inc.end - inc.start)}, then cleared` : `lost in ${duration(Date.now() - inc.start)}, still counting`;
+  }
+  lossChart(inc);
+  waitSlider(d.state === 'dust' ? d.lossRandDay : inc && !inc.end ? inc.rateDay : 0);
+
+  // records
+  const rows = state.records.slice(-15).reverse();
+  $('recBody').innerHTML = rows.length ? rows.map((p, i) => {
+    const sp = p.a >= NODE.minRefV ? `${Math.max(0, (1 - p.b / p.a) * 100).toFixed(1)}%` : 'dark';
+    return `<tr class="${fresh && i === 0 && state.records.length !== lastRecCount ? 'new' : ''}"><td class="mono">${clock(p.t)}</td><td class="num">${p.a.toFixed(2)}</td><td class="num">${p.b.toFixed(2)}</td><td class="num">${sp}</td><td class="num">${p.temp != null ? p.temp.toFixed(1) + ' °C' : '–'}</td><td class="num">${p.hum != null ? p.hum.toFixed(0) + '%' : '–'}</td><td>${p.buzzer ? 'on' : 'off'}</td><td>${p.diag}</td></tr>`;
+  }).join('') : `<tr><td colspan="8" class="muted">${state.connected || SIM ? 'No readings yet.' : '<div class="skel" style="height:24px"></div>'}</td></tr>`;
+  lastRecCount = state.records.length;
+  $('recNote').textContent = `${fmt(state.records.length)} readings recorded in this browser${state.cloud.length ? `, ${fmt(state.cloud.length)} stored in Firebase by the node` : ''}. Newest first.`;
+
+  // alerts
+  const list = state.incidents.filter((i) => i.siteId === state.siteId);
+  $('evBtn').disabled = !list.length;
+  $('alerts').innerHTML = list.length ? list.slice(0, 5).map((i) => `
+    <div class="stack fade-in" style="gap:8px;border-top:1px solid var(--line);padding-top:16px">
+      <div class="row between"><strong>${clock(i.start)} · peak soiling ${i.peakPct.toFixed(1)}%</strong>
+        <span class="pill ${i.end ? 't-ok' : 't-bad'}">${i.end ? `cleared after ${duration(i.end - i.start)}` : 'active'}</span></div>
+      <ul class="events">${i.events.map((e) => `<li><span class="mono muted">${clock(e.at)}</span><span>${e.text}</span></li>`).join('')}</ul>
+      <span class="small">Lost during the alert: <strong class="mono bad-text">${rand2(i.rand)}</strong></span>
+    </div>`).join('') : `<p class="small muted">No alerts yet. ${SIM ? 'Press Dust builds up to start one.' : 'Cover Panel B to start one.'}</p>`;
+}
+
+function waitSlider(rateDay) {
+  const days = +$('wait').value, cleanCost = site().cleanCost;
+  const lost = rateDay * days, top = Math.max(lost, cleanCost) || 1;
+  const dayWord = (n) => `${n} day${n === 1 ? '' : 's'}`;
+  const breakeven = rateDay > 0 ? cleanCost / rateDay : Infinity;
+  $('waitDays').textContent = dayWord(days);
+  $('waitLoss').textContent = rand2(lost);
+  $('waitClean').textContent = `R${fmt(cleanCost)}`;
+  $('waitLossBar').style.width = `${(lost / top) * 100}%`;
+  $('waitCleanBar').style.width = `${(cleanCost / top) * 100}%`;
+  const v = $('waitVerdict');
+  if (!isFinite(breakeven)) { v.className = 'verdict t-off'; v.textContent = 'No dust loss right now, so there is nothing to lose by waiting.'; }
+  else if (lost > cleanCost) { v.className = 'verdict t-bad'; v.textContent = `Waiting ${dayWord(days)} costs ${rand2(lost - cleanCost)} more than cleaning. Waiting stopped making sense after ${dayWord(Math.max(1, Math.round(breakeven)))}.`; }
+  else { v.className = 'verdict t-ok'; v.textContent = `Waiting ${dayWord(days)} still costs less than a clean. After ${dayWord(Math.max(1, Math.round(breakeven)))} it costs more.`; }
+  $('waitRate').textContent = `At today's loss rate of R${fmt(rateDay)} a day. Dust keeps building, so the real figure grows faster.`;
+}
+
+// ---------- Buttons ----------
+async function busy(btn, fn) {
+  btn.disabled = true; btn.classList.add('busy');
+  try { await fn(); } finally { btn.disabled = false; btn.classList.remove('busy'); }
+}
+
+let muteRef = null;
+$('muteBtn').addEventListener('click', () => busy($('muteBtn'), async () => {
+  if (!SIM) await set(muteRef, true);
+  state.muted = true;
+  const inc = state.incidents.find((i) => !i.end && i.siteId === state.siteId);
+  if (inc) { inc.events.push({ at: Date.now(), text: 'Buzzer silenced from the dashboard.' }); store.set(KEY + '.incidents', state.incidents); }
+  render();
+}).catch((e) => showError(`Could not silence the buzzer: ${e.message}`)));
+
+function download(name, rows) {
+  const q = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const blob = new Blob([rows.map((r) => r.map(q).join(',')).join('\n')], { type: 'text/csv' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+$('csvBtn').addEventListener('click', () => busy($('csvBtn'), async () => {
+  const all = [...state.cloud.filter((h) => !state.records.length || h.t < state.records[0].t), ...state.records];
+  download(`sedigrid-readings-${new Date().toISOString().slice(0, 16).replace(':', '')}.csv`, [
+    ['Time', 'Panel A V', 'Panel B V', 'Soiling %', 'Temperature C', 'Humidity %', 'Buzzer', 'Diagnosis'],
+    ...all.map((p) => [new Date(p.t).toISOString(), p.a.toFixed(3), p.b.toFixed(3), p.a >= NODE.minRefV ? ((1 - p.b / p.a) * 100).toFixed(1) : 'dark', p.temp ?? '', p.hum ?? '', p.buzzer ? 'on' : 'off', p.diag || '']),
+  ]);
+  await new Promise((res) => setTimeout(res, 300));
+}));
+$('evBtn').addEventListener('click', () => busy($('evBtn'), async () => {
+  const inc = state.incidents.find((i) => i.siteId === state.siteId);
+  if (!inc) return;
+  const during = state.records.filter((p) => p.t >= inc.start - 60000 && (!inc.end || p.t <= inc.end + 60000));
+  download(`sedigrid-evidence-${inc.siteId}-${new Date(inc.start).toISOString().slice(0, 16).replace(':', '')}.csv`, [
+    ['SediGrid loss evidence'], ['Site', inc.siteName], ['Alert started', new Date(inc.start).toISOString()], ['Alert ended', inc.end ? new Date(inc.end).toISOString() : 'still active'],
+    ['Peak soiling %', inc.peakPct.toFixed(1)], ['Loss at site scale (R)', inc.rand.toFixed(2)], [],
+    ['Time', 'Event'], ...inc.events.map((e) => [new Date(e.at).toISOString(), e.text]), [],
+    ['Time', 'Panel A V', 'Panel B V', 'Soiling %', 'Temperature C', 'Humidity %', 'Buzzer'],
+    ...during.map((p) => [new Date(p.t).toISOString(), p.a.toFixed(3), p.b.toFixed(3), p.a >= NODE.minRefV ? ((1 - p.b / p.a) * 100).toFixed(1) : 'dark', p.temp ?? '', p.hum ?? '', p.buzzer ? 'on' : 'off']),
+  ]);
+  await new Promise((res) => setTimeout(res, 300));
+}));
+$('wait').addEventListener('input', () => render());
+
+const siteSel = $('site');
+siteSel.innerHTML = Object.entries(SITES).map(([id, s]) => `<option value="${id}">${s.name}</option>`).join('');
+siteSel.value = state.siteId;
+siteSel.addEventListener('change', () => { state.siteId = siteSel.value; store.set(KEY + '.site', state.siteId); render(); });
+
+function showError(html) { const p = $('errorPanel'); p.hidden = false; p.innerHTML = html; }
+
+// ---------- Firebase (live) ----------
+async function startLive() {
+  try {
+    const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
+    const fdb = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js");
+    ({ ref, onValue, query, limitToLast, set } = fdb);
+    const db = fdb.getDatabase(initializeApp(firebaseConfig));
+    muteRef = ref(db, 'control/buzzerMuted');
+    const denied = (e) => showError(`<h2>Firebase refused to share the readings</h2><p class="small">${e.message}. Publish the Realtime Database rules from <code>database.rules.json</code> (run <code>firebase deploy --only database</code>), then reload this page.</p>`);
+    onValue(ref(db, 'solarMonitoring'), (snap) => { state.connected = true; $('errorPanel').hidden = true; receive(normalise(snap.val())); if (!snap.exists()) render(); }, denied);
+    onValue(muteRef, (snap) => { const m = snap.val() === true; if (m !== state.muted) { state.muted = m; render(); } }, () => {});
+    onValue(query(ref(db, 'solarHistory'), limitToLast(300)), (snap) => {
+      const out = [];
+      snap.forEach((c) => { const r = normalise(c.val()); if (r && c.val().timestamp) out.push({ t: c.val().timestamp, a: r.a, b: r.b, temp: r.temp, hum: r.hum, buzzer: r.buzzer, diag: '' }); });
+      state.cloud = out; render();
+    }, () => {});
+  } catch (e) { showError(`<h2>Could not start Firebase</h2><p class="small">${e.message}</p>`); }
+}
+
+// ---------- Simulation (?sim) for presenting without the board ----------
+function startSim() {
+  state.connected = true;
+  const chips = $('simChips'); chips.hidden = false;
+  let scene = 'clean', soil = 0, low = 0, high = 0, alarm = false, ms = 0;
+  chips.innerHTML = SCENES.map((s) => `<button class="chip" data-k="${s.key}" aria-pressed="${s.key === scene}">${s.label}</button>`).join('');
+  chips.addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    scene = b.dataset.k;
+    chips.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', x === b));
+    const say = $('sceneSay'); say.hidden = false; say.textContent = SCENES.find((s) => s.key === scene).say;
+  });
+  const n = (v) => v + (Math.random() - 0.5) * 0.04;
+  setInterval(() => {
+    ms += 2000;
+    let a = 5.4, hum = 38, temp = 31;
+    if (scene === 'cloud') a = 2.6;
+    if (scene === 'night') a = 0.4;
+    if (scene === 'dust' || scene === 'dew') soil = Math.min(0.22, soil + 0.015);
+    else if (scene === 'clean') soil = Math.max(0, soil - 0.05);
+    if (scene === 'dew') { hum = 91; temp = 12; }
+    let b = a * (1 - soil);
+    if (scene === 'fault') b = 0.15;
+    const ratio = a >= NODE.minRefV ? b / a : 1;
+    const bad = a >= NODE.minRefV && (ratio < 1 - NODE.alarmPct / 100 || b < 0.1 * a);
+    low = bad ? low + 1 : 0; high = bad ? 0 : high + 1;
+    if (!alarm && (low >= NODE.confirm || (scene === 'fault' && low >= 1))) alarm = true;
+    if (alarm && high >= NODE.confirm) alarm = false;
+    if (!alarm) state.muted = false;
+    receive({ a: n(a), b: n(b), temp: n(temp), hum: Math.round(n(hum)), buzzer: alarm, devMs: ms, at: Date.now() });
+  }, 2000);
+}
+
+render();
+if (SIM) startSim(); else startLive();
+// Keep the offline check and the loss counter ticking between readings.
+setInterval(() => render(), 5000);
+</script>
+</body>
+</html>

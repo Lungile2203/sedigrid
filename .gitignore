@@ -1,0 +1,17 @@
+# Dependencies and build output (recreated with npm install / npm run build)
+node_modules/
+dist/
+
+# Firebase local cache and logs
+.firebase/
+*.log
+firebase-debug*.log
+
+# Secrets: never upload
+secrets.h
+.env
+.env.*
+
+# Editor and OS files
+.DS_Store
+Thumbs.db

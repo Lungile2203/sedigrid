@@ -1,0 +1,41 @@
+rules_version = '2';
+// Hackathon rules. The ESP32 and the app write without logging in.
+// Sensor writes are limited to sensor fields; nothing can be deleted.
+// Before real customers use it: add Firebase Authentication and lock jobs to signed-in users.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /sites/{siteId} {
+      allow read: if true;
+      // App "Add pilot sites" creates the record once.
+      allow create: if request.resource.data.keys().hasOnly(['name','type','place','capacityKW','tariff','cleanCost','dustType']);
+      // ESP32 updates (and the app's Silence buzzer) may only touch these fields.
+      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+        'test_v','ref_v','rain_wet','temp_c','alarm_active','alarm_muted','source','updated_at',
+        'ref_ma','test_ma','ref_mw','test_mw','ref_temp_c','test_temp_c','rain_mv','soiling_pct','clean_ratio',
+        'name','type','place','capacityKW','tariff','cleanCost','dustType'
+      ]);
+
+      match /readings/{readingId} {
+        allow read: if true;
+        allow create: if request.resource.data.keys().hasOnly(['test_v','ref_v','rain_wet','temp_c','at',
+          'ref_ma','test_ma','ref_mw','test_mw','ref_temp_c','test_temp_c','rain_mv','soiling_pct']);
+        allow update, delete: if false;
+      }
+    }
+
+    match /jobs/{jobId} {
+      allow read, create, update: if true;
+      allow delete: if false;
+    }
+
+    // Website contact form. Anyone can send one; only the team reads them, in the Firebase console.
+    match /enquiries/{enquiryId} {
+      allow create: if request.resource.data.keys().hasOnly(['name','org','email','phone','role','message','at'])
+        && request.resource.data.name is string && request.resource.data.name.size() <= 2000
+        && request.resource.data.email is string && request.resource.data.email.size() <= 2000
+        && request.resource.data.message is string && request.resource.data.message.size() <= 2000;
+      allow read, update, delete: if false;
+    }
+  }
+}

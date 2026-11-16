@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 44" width="64" height="44">
+  <defs><clipPath id="g"><circle cx="32" cy="26" r="13.5" /></clipPath></defs>
+  <path fill="#f6b24a" d="M12.5 25.0L6.4 21.5L13.4 20.3ZM14.1 18.4L9.5 13.0L16.4 14.3ZM17.7 12.7L15.3 6.1L21.4 9.6ZM23.1 8.6L23.1 1.6L27.6 7.0ZM29.6 6.6L32.0 0.0L34.4 6.6ZM36.4 7.0L40.9 1.6L40.9 8.6ZM42.6 9.6L48.7 6.1L46.3 12.7ZM47.6 14.3L54.5 13.0L49.9 18.4ZM50.6 20.3L57.6 21.5L51.5 25.0Z" />
+  <path d="M13.5 26A18.5 18.5 0 0 1 50.5 26" fill="none" stroke="#f29e2e" stroke-width="3.5" />
+  <circle cx="32" cy="26" r="15" fill="none" stroke="#2e3a40" stroke-width="3" />
+  <g clip-path="url(#g)" stroke="#2e3a40" stroke-width="2" fill="#2e3a40">
+    <path d="M26.5 10V42M32 10V42M37.5 10V42M16 19.5H48M16 33H48" fill="none" />
+    <circle cx="26.5" cy="15.5" r="1.8" /><circle cx="37.5" cy="15.5" r="1.8" /><circle cx="26.5" cy="37" r="1.8" /><circle cx="37.5" cy="37" r="1.8" />
+  </g>
+  <path d="M2 26H21L24.5 26L28 15L32.5 37L36.5 18.5L39.5 26H62" fill="none" stroke="#ffffff" stroke-width="5.5" stroke-linejoin="round" stroke-linecap="round" />
+  <path d="M2 26H21L24.5 26L28 15L32.5 37L36.5 18.5L39.5 26H62" fill="none" stroke="#f29e2e" stroke-width="2.8" stroke-linejoin="round" stroke-linecap="round" />
+</svg>
